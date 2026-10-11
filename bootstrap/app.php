@@ -1,8 +1,16 @@
 <?php
 
+declare(strict_types=1);
+
+use App\Exceptions\EmptyOrderException;
+use App\Exceptions\InactiveCustomerException;
+use App\Exceptions\InsufficientCreditException;
+use App\Exceptions\InsufficientInventoryException;
+use App\Exceptions\InvalidOrderStateException;
 use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
+use Illuminate\Http\Request;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -14,5 +22,10 @@ return Application::configure(basePath: dirname(__DIR__))
         //
     })
     ->withExceptions(function (Exceptions $exceptions) {
-        //
+        $exceptions->render(function (
+            EmptyOrderException|InactiveCustomerException|InsufficientCreditException|InsufficientInventoryException|InvalidOrderStateException $e,
+            Request $request,
+        ) {
+            return back()->with('error', $e->getMessage());
+        });
     })->create();
