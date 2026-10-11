@@ -25,6 +25,8 @@ class Order extends Model
         'approved_at',
         'dispatched_at',
         'rejection_reason',
+        'rejected_by',
+        'rejected_at',
     ];
 
     /**
@@ -39,6 +41,7 @@ class Order extends Model
             'total_amount' => 'decimal:2',
             'approved_at' => 'datetime',
             'dispatched_at' => 'datetime',
+            'rejected_at' => 'datetime',
         ];
     }
 
@@ -55,6 +58,11 @@ class Order extends Model
     public function approvedBy(): BelongsTo
     {
         return $this->belongsTo(User::class, 'approved_by');
+    }
+
+    public function rejectedBy(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'rejected_by');
     }
 
     public function items(): HasMany
