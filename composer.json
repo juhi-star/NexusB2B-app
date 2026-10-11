@@ -1,8 +1,8 @@
 {
-    "name": "laravel/laravel",
+    "name": "nexusb2b/wholesale-orders",
     "type": "project",
-    "description": "The skeleton application for the Laravel framework.",
-    "keywords": ["laravel", "framework"],
+    "description": "NexusB2B wholesale order and credit management application.",
+    "keywords": ["laravel", "b2b", "wholesale", "orders", "credit"],
     "license": "MIT",
     "require": {
         "php": "^8.2",
@@ -45,7 +45,9 @@
             "@php artisan key:generate --ansi",
             "@php -r \"file_exists('database/database.sqlite') || touch('database/database.sqlite');\"",
             "@php artisan migrate --ansi"
-        ]
+        ],
+        "test": "@php artisan test",
+        "pint": "vendor/bin/pint"
     },
     "extra": {
         "branch-alias": {

@@ -1,0 +1,46 @@
+<?php
+
+declare(strict_types=1);
+
+namespace Database\Factories;
+
+use App\Models\Product;
+use Illuminate\Database\Eloquent\Factories\Factory;
+
+/**
+ * @extends Factory<Product>
+ */
+final class ProductFactory extends Factory
+{
+    protected $model = Product::class;
+
+    /**
+     * @return array<string, mixed>
+     */
+    public function definition(): array
+    {
+        return [
+            'name' => fake()->unique()->words(2, true),
+            'sku' => strtoupper(fake()->unique()->bothify('SKU-???-###')),
+            'description' => fake()->sentence(),
+            'base_price' => 100.00,
+            'stock_quantity' => 500,
+            'is_active' => true,
+        ];
+    }
+
+    public function inactive(): static
+    {
+        return $this->state(fn (): array => ['is_active' => false]);
+    }
+
+    public function priced(float $price): static
+    {
+        return $this->state(fn (): array => ['base_price' => $price]);
+    }
+
+    public function withStock(int $quantity): static
+    {
+        return $this->state(fn (): array => ['stock_quantity' => $quantity]);
+    }
+}

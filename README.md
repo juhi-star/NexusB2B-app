@@ -1,66 +1,162 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# NexusB2B — Wholesale Order & Credit Management
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+A Laravel 11 application for B2B wholesale ordering with volume-based pricing and
+enforced credit limits. Sales representatives build and submit draft orders;
+credit managers approve, reject or dispatch them — all backed by atomic,
+lock-guarded domain actions.
 
-## About Laravel
+## Features
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+- **Two roles with enforced RBAC**
+  - *Sales Representative* — create draft orders for active customers, add/update/remove
+    line items, submit orders for credit review, dispatch their own approved orders.
+  - *Credit Manager* — review queue, approve (releases stock) or reject orders with a
+    mandatory reason, dispatch approved orders.
+- **Volume-tiered pricing** applied automatically per line item:
+  | Quantity | Tier | Discount |
+  |---|---|---|
+  | 1–49 | Standard | 0% |
+  | 50–99 | Bulk | 5% |
+  | 100+ | Enterprise | 10% |
+- **Credit control** — an order can only be submitted/approved while the customer is
+  active and the order total fits within `credit_limit − outstanding_balance`.
+  A fast pre-check runs in the Form Request; the authoritative check runs again inside
+  the approval transaction under a row lock.
+- **Atomic order lifecycle** — `Draft → Submitted → Approved → Dispatched`
+  (or `→ Rejected`). Approvals decrement stock and increment the customer balance
+  inside a single `DB::transaction()` with deterministic `lockForUpdate()` ordering.
+- **Full audit trail** — who approved/rejected/dispatched and when, plus rejection reasons.
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+## Tech stack
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+- PHP 8.2+, Laravel 11
+- Blade + Tailwind CSS 3 (Vite build)
+- SQLite by default; MySQL 8 recommended for true row-level locking
 
-## Learning Laravel
+## Requirements
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+- PHP 8.2 or newer (with `pdo_sqlite` or `pdo_mysql`)
+- [Composer](https://getcomposer.org)
+- Node.js 18+ and npm
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+## Setup
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+```bash
+# 1. PHP dependencies
+composer install
 
-## Laravel Sponsors
+# 2. Environment
+cp .env.example .env          # Windows: copy .env.example .env
+php artisan key:generate
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+# 3. Database (SQLite by default — creates an empty file)
+#    Windows: type nul > database/database.sqlite   (or: ni database/database.sqlite)
+touch database/database.sqlite
 
-### Premium Partners
+# 4. Schema + demo data
+php artisan migrate:fresh --seed
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+# 5. Front-end assets
+npm install
+npm run build
 
-## Contributing
+# 6. Serve
+php artisan serve
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Then open <http://localhost:8000>.
 
-## Code of Conduct
+### Using MySQL 8 instead of SQLite
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+Edit `.env`:
 
-## Security Vulnerabilities
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=nexusb2b
+DB_USERNAME=root
+DB_PASSWORD=
+```
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Then re-run `php artisan migrate:fresh --seed`. MySQL is required for the row-level
+locking guarantees exercised by `OrderConcurrencyTest`.
 
-## License
+## Demo credentials
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+Seeded by `php artisan migrate:fresh --seed` (password is `password` for all):
+
+| Role | Email | Password |
+|---|---|---|
+| Credit Manager | `manager@nexusb2b.test` | `password` |
+| Sales Representative | `rep@nexusb2b.test` | `password` |
+| Sales Representative | `rep2@nexusb2b.test` | `password` |
+
+The seeder also creates 5 customers (including a near-limit and an inactive account),
+8 products (one discontinued) and 6 orders spanning every status — including one
+`Submitted` order already waiting in the manager's review queue.
+
+## Routes
+
+| Method | URI | Action |
+|---|---|---|
+| GET | `/login`, POST `/login`, POST `/logout` | Session auth |
+| GET | `/dashboard` | Role-aware landing |
+| GET | `/products` | Catalogue |
+| GET | `/customers`, `/customers/{customer}` | Accounts & live credit |
+| GET/POST | `/orders`, `/orders/create` | List / create draft |
+| GET | `/orders/{order}` | Detail + lifecycle |
+| POST/PUT/DELETE | `/orders/{order}/items[/{product}]` | Draft line-item CRUD |
+| POST | `/orders/{order}/submit` | Submit for credit review |
+| POST | `/orders/{order}/review` | Approve / reject |
+| POST | `/orders/{order}/dispatch` | Mark dispatched |
+
+## Architecture
+
+Business logic lives outside controllers, which stay thin (authorize → delegate → redirect).
+
+```
+app/
+├── Actions/Orders/          # One class per lifecycle operation (transactional)
+├── Enums/                   # UserRole, OrderStatus, CustomerStatus, VolumeTier
+├── Exceptions/              # Domain exceptions (mapped to flash errors centrally)
+├── Http/
+│   ├── Controllers/         # Thin HTTP layer
+│   └── Requests/            # Validation + authorization + credit pre-check
+├── Models/                  # Eloquent models, casts and relations
+├── Policies/                # OrderPolicy, CustomerPolicy, ProductPolicy
+├── Services/                # PricingCalculatorService, OrderCreditEvaluator, OrderTotalCalculator
+└── ValueObjects/            # LineItemPricing (readonly)
+```
+
+Domain exceptions are rendered centrally (`bootstrap/app.php`) to a redirect with a
+flash message, so controllers remain free of `try/catch`.
+
+## Testing
+
+```bash
+php artisan test          # or: composer test
+```
+
+- `tests/Unit` — pricing engine and volume-tier boundaries.
+- `tests/Feature` — authentication, full order lifecycle, credit rules, inventory
+  rollback, RBAC/403 authorization and pricing integration.
+- `OrderConcurrencyTest` self-skips unless the active driver supports row locks
+  (MySQL/Postgres), documenting where the concurrency guarantee is verified.
+
+Tests run against an in-memory SQLite database (`phpunit.xml`), so they never touch
+your development data.
+
+## Code style
+
+```bash
+composer pint             # or: vendor/bin/pint
+```
+
+## Known considerations
+
+- SQLite ignores `SELECT ... FOR UPDATE`; use MySQL 8 to verify concurrency safety.
+- With Laravel 11.57 a `brick/math` deprecation notice can appear from the framework's
+  `decimal` cast internals; it does not affect behaviour.
+- Credit-limit "temporary holds / overrides" are not modelled as there is no such
+  state in the current schema.
