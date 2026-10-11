@@ -81,9 +81,18 @@ final class OrderController extends Controller
 
         $order->load(['customer', 'salesRepresentative', 'approvedBy', 'rejectedBy', 'items.product']);
 
+        $products = $order->status === OrderStatus::Draft
+            ? Product::query()
+                ->where('is_active', true)
+                ->whereNotIn('id', $order->items->pluck('product_id'))
+                ->orderBy('name')
+                ->get()
+            : collect();
+
         return view('orders.show', [
             'order' => $order,
             'availableCredit' => $credit->availableCredit($order->customer),
+            'products' => $products,
         ]);
     }
 
