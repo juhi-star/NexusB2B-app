@@ -59,4 +59,14 @@ class User extends Authenticatable
     {
         return $this->hasMany(Order::class, 'approved_by');
     }
+
+    public function isCreditManager(): bool
+    {
+        return $this->role->isCreditManager();
+    }
+
+    public function isSalesRepresentative(): bool
+    {
+        return $this->role->isSalesRepresentative();
+    }
 }
